@@ -352,7 +352,8 @@ class GscMainWindowIconView : public Gtk::IconView {
 					break;
 				case StorageDevice::DetectedType::unknown:  // standard HD icon
 				case StorageDevice::DetectedType::invalid:
-				case StorageDevice::DetectedType::raid:  // TODO a separate icon for this
+				case StorageDevice::DetectedType::raid:
+				case StorageDevice::DetectedType::nvme:  // TODO a separate icon for this
 					icon = hd_icon;
 					break;
 			}

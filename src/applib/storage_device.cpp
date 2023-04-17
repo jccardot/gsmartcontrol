@@ -35,6 +35,7 @@ std::string StorageDevice::get_type_storable_name(DetectedType type)
 			{DetectedType::invalid, "invalid"},
 			{DetectedType::cddvd, "cd/dvd"},
 			{DetectedType::raid, "raid"},
+			{DetectedType::nvme, "nvme"},
 	};
 	if (auto iter = m.find(type); iter != m.end()) {
 		return iter->second;
@@ -166,6 +167,9 @@ std::string StorageDevice::parse_basic_data(bool do_set_properties, bool emit_si
 	} else if (app_pcre_match("/Product:[ \\t]*Raid/mi", info_output_)) {
 		debug_out_dump("app", "Drive " << get_device_with_type() << " seems to be a RAID volume/controller.\n");
 		this->set_detected_type(DetectedType::raid);
+	} else if (app_pcre_match("/NVMe Version:", info_output_)) {
+		debug_out_dump("app", "Drive " << get_device_with_type() << " seems to be a NVME device.\n");
+		this->set_detected_type(DetectedType::nvme);
 	}
 
 	// RAID volume may report that it has SMART, but it obviously doesn't.

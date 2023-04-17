@@ -44,6 +44,7 @@ class StorageDevice {
 			invalid,  // This is set by smartctl executor if it detects invalid type (but not if it's scsi).
 			cddvd,  // CD/DVD/Blu-Ray. Unsupported by smartctl, only basic info is given.
 			raid,  // RAID controller or volume. Unsupported by smartctl, only basic info is given.
+			nvme, // NVME devices
 		};
 
 
