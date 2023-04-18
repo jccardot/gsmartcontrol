@@ -274,6 +274,8 @@ bool SmartctlAtaTextParser::parse_full(const std::string& full)
 // Parse the section part (with "=== .... ===" header) - info or data sections.
 bool SmartctlAtaTextParser::parse_section(const std::string& header, const std::string& body)
 {
+	debug_out_info("app", "Parsing section: \"" << header << "\".\n");
+
 	if (app_pcre_match("/START OF INFORMATION SECTION/mi", header)) {
 		return parse_section_info(body);
 	}
@@ -641,6 +643,8 @@ bool SmartctlAtaTextParser::parse_section_info_property(AtaStorageProperty& p)
 // Parse the Data section (without "===" header)
 bool SmartctlAtaTextParser::parse_section_data(const std::string& body)
 {
+	debug_out_info("app", "<Parsing data>\n\n" << body << "\n\n</Parsing data>\n");
+
 	this->set_data_section_data(body);
 
 	// perform any2unix
