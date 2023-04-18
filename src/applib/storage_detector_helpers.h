@@ -187,7 +187,7 @@ inline std::string smartctl_scan_drives_sequentially(const std::string& dev, con
 			debug_out_dump("app", "Skipping drive " << drive->get_device_with_type() << " due to smartctl error.\n");
 		} else {
 			drives.push_back(drive);
-			debug_out_info("app", "Added drive " << drive->get_device_with_type() << ".\n");
+			debug_out_info("app", "[smartctl_scan_drives_sequentially] Added drive " << drive->get_device_with_type() << ".\n");
 		}
 	}
 

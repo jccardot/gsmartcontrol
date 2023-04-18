@@ -788,7 +788,7 @@ std::string detect_drives_win32(std::vector<StorageDevicePtr>& drives, const Com
 			}
 		}
 
-		debug_out_info("app", "Added drive " << drive->get_device_with_type() << ".\n");
+		debug_out_info("app", "[detect_drives_win32] Added drive " << drive->get_device_with_type() << ".\n");
 		drives.push_back(drive);
 	}
 

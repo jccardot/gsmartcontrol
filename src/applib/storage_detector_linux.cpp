@@ -428,7 +428,7 @@ inline std::string detect_drives_linux_proc_partitions(std::vector<StorageDevice
 			debug_out_dump("app", "Drive " << drive->get_device_with_type() << " seems to be a 3ware controller, ignoring.\n");
 		} else {
 			drives.push_back(drive);
-			debug_out_info("app", "Added drive " << drive->get_device_with_type() << ".\n");
+			debug_out_info("app", "[detect_drives_linux_proc_partitions] Added drive " << drive->get_device_with_type() << ".\n");
 		}
 	}
 
@@ -686,7 +686,7 @@ inline std::string detect_drives_linux_adaptec(std::vector<StorageDevicePtr>& dr
 				debug_out_dump("app", "Skipping drive " << drive->get_device_with_type() << ".\n");
 			} else {
 				drives.push_back(drive);
-				debug_out_info("app", "Added drive " << drive->get_device_with_type() << ".\n");
+				debug_out_info("app", "[detect_drives_linux_adaptec] Added drive " << drive->get_device_with_type() << ".\n");
 			}
 		}
 	}
@@ -935,7 +935,7 @@ inline std::string detect_drives_linux_cciss(std::vector<StorageDevicePtr>& driv
 
 			if (local_error_msg.empty()) {
 				drives.push_back(drive);
-				debug_out_info("app", "Added drive " << drive->get_device_with_type() << ".\n");
+				debug_out_info("app", "[detect_drives_linux_cciss] Added drive " << drive->get_device_with_type() << ".\n");
 			} else {
 				debug_out_dump("app", "Skipping drive " << drive->get_device_with_type() << " due to smartctl error.\n");
 			}
@@ -1034,7 +1034,7 @@ inline std::string detect_drives_linux_hpsa(std::vector<StorageDevicePtr>& drive
 					debug_out_dump("app", "Skipping drive " << drive->get_device_with_type() << " due to smartctl error.\n");
 				} else {
 					drives.push_back(drive);
-					debug_out_info("app", "Added drive " << drive->get_device_with_type() << ".\n");
+					debug_out_info("app", "[detect_drives_linux_hpsa] Added drive " << drive->get_device_with_type() << ".\n");
 				}
 			}
 
