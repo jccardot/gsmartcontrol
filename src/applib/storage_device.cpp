@@ -169,7 +169,7 @@ std::string StorageDevice::parse_basic_data(bool do_set_properties, bool emit_si
 	} else if (app_pcre_match("/Product:[ \\t]*Raid/mi", info_output_)) {
 		debug_out_dump("app", "Drive " << get_device_with_type() << " seems to be a RAID volume/controller.\n");
 		this->set_detected_type(DetectedType::raid);
-	} else if (app_pcre_match("/NVMe Version:[ \\t]*Raid/mi", info_output_)) {
+	} else if (app_pcre_match("/NVMe Version:[ \\t]*/mi", info_output_)) {
 		debug_out_dump("app", "Drive " << get_device_with_type() << " seems to be a NVMe device.\n");
 		this->set_detected_type(DetectedType::nvme);
 	}
