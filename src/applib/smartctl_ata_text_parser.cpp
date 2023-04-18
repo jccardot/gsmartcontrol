@@ -597,8 +597,33 @@ bool SmartctlAtaTextParser::parse_section_info_property(AtaStorageProperty& p)
 	} else if (app_pcre_match("/^scsiMode/mi", p.reported_name)) {
 		p.show_in_ui = false;
 
+	// NVMe properties
+	} else if (
+		   app_pcre_match("/^Model Number$/mi", p.reported_name)
+		|| app_pcre_match("/^PCI Vendor/Subsystem ID$/mi", p.reported_name)
+		|| app_pcre_match("/^IEEE OUI Identifier$/mi", p.reported_name)
+		|| app_pcre_match("/^Total NVM Capacity$/mi", p.reported_name)
+		|| app_pcre_match("/^Unallocated NVM Capacity$/mi", p.reported_name)
+		|| app_pcre_match("/^Controller ID$/mi", p.reported_name)
+		|| app_pcre_match("/^NVMe Version$/mi", p.reported_name)
+		|| app_pcre_match("/^Number of Namespaces$/mi", p.reported_name)
+		|| app_pcre_match("/^Firmware Updates \\(.+\\)$/mi", p.reported_name)
+		|| app_pcre_match("/^Optional Admin Commands \\(.+\\)$/mi", p.reported_name)
+		|| app_pcre_match("/^Optional NVM Commands \\(.+\\)$/mi", p.reported_name)
+		|| app_pcre_match("/^Log Page Attributes \\(.+\\)$/mi", p.reported_name)
+		|| app_pcre_match("/^Maximum Data Transfer Size$/mi", p.reported_name)
+		|| app_pcre_match("/^Warning  Comp\\. Temp. Threshold$/mi", p.reported_name)
+		|| app_pcre_match("/^Critical Comp\\. Temp. Threshold$/mi", p.reported_name)
+		|| app_pcre_match("/^Namespace \\d+ Size/Capacity$/mi", p.reported_name)
+		|| app_pcre_match("/^Namespace \\d+ IEEE EUI-64$/mi", p.reported_name)
+		|| app_pcre_match("/^Namespace \\d+ Formatted LBA Size$/mi", p.reported_name)
+		|| app_pcre_match("/^Namespace 1 Features \\(.+\\)$/mi", p.reported_name)
+	) {
+		p.set_name(p.reported_name, "nvme/string", "NVMe: " + p.reported_name);
+		p.value = p.reported_value;
+
 	} else {
-		debug_out_warn("app", DBG_FUNC_MSG << "Unknown property \"" << p.reported_name << "\"\n");
+		debug_out_warn("app", DBG_FUNC_MSG << "Unknown property \"" << p.reported_name << " (value = '" << p.reported_value << "') \"\n");
 		// this is not an error, just unknown attribute. treat it as string.
 		// Don't highlight it with warning, it may just be a new smartctl feature.
 		p.value = p.reported_value;  // string-type value
