@@ -125,6 +125,7 @@ std::string StorageDevice::fetch_basic_data_and_parse(const std::shared_ptr<Comm
 	// Since the type error leads to "command line didn't parse" error here,
 	// we do this after the scsi stuff.
 	if (!error_msg.empty()) {
+		debug_out_info("app", "Got errors reading smart capabilities.\n");
 		// Still try to parse something. For some reason, running smartctl on usb flash drive
 		// under winxp returns "command line didn't parse", while actually printing its name.
 		this->parse_basic_data(false, true);
@@ -132,6 +133,7 @@ std::string StorageDevice::fetch_basic_data_and_parse(const std::shared_ptr<Comm
 	}
 
 	// Set some properties too - they are needed for e.g. AODC status, etc...
+	debug_out_info("app", "Got NO errors reading smart capabilities.\n");
 	return this->parse_basic_data(true);
 }
 
@@ -167,7 +169,7 @@ std::string StorageDevice::parse_basic_data(bool do_set_properties, bool emit_si
 	} else if (app_pcre_match("/Product:[ \\t]*Raid/mi", info_output_)) {
 		debug_out_dump("app", "Drive " << get_device_with_type() << " seems to be a RAID volume/controller.\n");
 		this->set_detected_type(DetectedType::raid);
-	} else if (app_pcre_match("/NVMe Version:", info_output_)) {
+	} else if (app_pcre_match("NVMe Version:", info_output_)) {
 		debug_out_dump("app", "Drive " << get_device_with_type() << " seems to be a NVME device.\n");
 		this->set_detected_type(DetectedType::nvme);
 	}
