@@ -177,6 +177,10 @@ std::string StorageDevice::parse_basic_data(bool do_set_properties, bool emit_si
 		smart_supported_ = false;
 		smart_enabled_ = false;
 
+	} else if (get_detected_type() == DetectedType::nvme) {
+		smart_supported_ = true;
+		smart_enabled_ = true;
+
 	} else {
 		// Note: We don't use SmartctlAtaTextParser here, because this information
 		// may be in some other format. If this information is valid, only then it's
