@@ -280,6 +280,10 @@ bool SmartctlAtaTextParser::parse_section(const std::string& header, const std::
 		return parse_section_info(body);
 	}
 
+	if (app_pcre_match("/START OF SMART DATA SECTION/mi", header)) { // nvme
+		return parse_section_data(body);
+	}
+
 	if (app_pcre_match("/START OF READ SMART DATA SECTION/mi", header)) {
 		return parse_section_data(body);
 	}
@@ -611,7 +615,8 @@ bool SmartctlAtaTextParser::parse_section_info_property(AtaStorageProperty& p)
 		|| app_pcre_match("/^Namespace \\d+ Formatted LBA Size$/mi", p.reported_name)
 		|| app_pcre_match("/^Namespace \\d+ IEEE EUI-64$/mi", p.reported_name)
 		|| app_pcre_match("/^Namespace \\d+ Size/Capacity$/mi", p.reported_name)
-		|| app_pcre_match("/^Namespace 1 Features \\(.+\\)$/mi", p.reported_name)
+		|| app_pcre_match("/^Namespace \\d+ Utilization$/mi", p.reported_name)
+		|| app_pcre_match("/^Namespace \\d+ Features \\(.+\\)$/mi", p.reported_name)
 		|| app_pcre_match("/^Number of Namespaces$/mi", p.reported_name)
 		|| app_pcre_match("/^NVMe Version$/mi", p.reported_name)
 		|| app_pcre_match("/^Optional Admin Commands \\(.+\\)$/mi", p.reported_name)
@@ -621,7 +626,7 @@ bool SmartctlAtaTextParser::parse_section_info_property(AtaStorageProperty& p)
 		|| app_pcre_match("/^Unallocated NVM Capacity$/mi", p.reported_name)
 		|| app_pcre_match("/^Warning  Comp\\. Temp. Threshold$/mi", p.reported_name)
 	) {
-		p.set_name(p.reported_name, "nvme/string", "[NVMe] " + p.reported_name);
+		p.set_name(p.reported_name, "nvme/string", /*"[NVMe] " +*/ p.reported_name);
 		p.value = p.reported_value;
 
 	} else {
@@ -714,6 +719,10 @@ bool SmartctlAtaTextParser::parse_section_data(const std::string& body)
 				|| app_pcre_match("/^Read SMART Error Log failed/mi", sub) ) {  // -l error
 			status = parse_section_data_subsection_error_log(sub) || status;
 
+		} else if (app_pcre_match("/^Warning\\: NVMe Get Log truncated to/mi", sub)  // nvme -l error
+				|| app_pcre_match("/^Error Information \\(NVMe Log/mi", sub) ) { // -l error
+			status = parse_section_data_subsection_error_log_nvme(sub) || status;
+
 		} else if (app_pcre_match("/^SMART Extended Comprehensive Error Log \\(GP Log 0x03\\) not supported/mi", sub)  // -l xerror
 				|| app_pcre_match("/^SMART Extended Comprehensive Error Log size (.*) not supported/mi", sub)
 				|| app_pcre_match("/^Read SMART Extended Comprehensive Error Log failed/mi", sub) ) {  // -l xerror
@@ -772,6 +781,9 @@ bool SmartctlAtaTextParser::parse_section_data(const std::string& body)
 			// We don't support this section.
 			status = false;
 
+		} else if (app_pcre_match("/^SMART\\/Health Information \\(NVMe Log/mi", sub)) { // nvme
+			status = parse_section_data_subsection_devstat_nvme(sub) || status;
+			
 		} else if (app_pcre_match("/^SATA Phy Event Counters/mi", sub)  // -l sataphy
 				|| app_pcre_match("/^SATA Phy Event Counters \\(GP Log 0x11\\) not supported/mi", sub)
 				|| app_pcre_match("/^SATA Phy Event Counters with [0-9-]+ sectors not supported/mi", sub)
@@ -1735,6 +1747,86 @@ Error 1 [0] occurred at disk power-on lifetime: 1 hours (0 days + 1 hours)
 }
 
 
+bool SmartctlAtaTextParser::parse_section_data_subsection_error_log_nvme(const std::string& sub)
+{
+	AtaStorageProperty pt;  // template for easy copying
+	pt.section = AtaStorageProperty::Section::data;
+	pt.subsection = AtaStorageProperty::SubSection::error_log;
+
+	// Sample "-l error" output:
+/*
+Warning: NVMe Get Log truncated to 0x200 bytes, 0x200 bytes zero filled
+Error Information (NVMe Log 0x01, 16 of 64 entries)
+Num   ErrCount  SQId   CmdId  Status  PELoc          LBA  NSID    VS
+  0        792     0  0x0015  0x4004  0x02c            0     0     -
+  1        791     0  0x0015  0x4004  0x02c            0     0     -
+  2        790     0  0x000a  0x4016  0x004            0     1     -
+  3        789     0  0x000a  0x4016  0x004            0     1     -
+  4        788     0  0x000a  0x4016  0x004            0     1     -
+  5        787     0  0x000a  0x4016  0x004            0     1     -
+  6        786     0  0x000a  0x4016  0x004            0     1     -
+  7        785     0  0x000a  0x4016  0x004            0     1     -
+*/
+	// in case there is no error:
+/*
+Error Information (NVMe Log 0x01, 16 of 64 entries)
+No Errors Logged
+*/
+	bool data_found = false;
+
+	// Error log entry count
+	{
+		// note: these represent the same information
+		const pcrecpp::RE re = app_pcre_re("/^[ \\t]+0[ \\t]+([0-9]+)/mi");
+		const pcrecpp::RE re0 = app_pcre_re("/^No Errors Logged/mi");
+
+		std::string value;
+		if (re.PartialMatch(sub, &value)) {
+			debug_out_dump("app", "Error count=" + value + "\n");
+
+			AtaStorageProperty p(pt);
+			// Note: For Extended Error Log, the path has "extended".
+			// For simple error log, the path has "summary".
+			p.set_name("NVME Error Count", "nvme_smart_error_log/count");
+			p.reported_value = value;
+			p.value = p.reported_value;  // string-type value
+
+			add_property(p);
+			//data_found = true;
+		} else if (re0.PartialMatch(sub)) {
+			value = "0";
+			debug_out_dump("app", "Error count=" + value + "\n");
+
+			AtaStorageProperty p(pt);
+			// Note: For Extended Error Log, the path has "extended".
+			// For simple error log, the path has "summary".
+			p.set_name("NVME Error Count", "nvme_smart_error_log/count");
+			p.reported_value = value;
+			p.value = p.reported_value;  // string-type value
+
+			add_property(p);
+			//data_found = true;
+		}
+	}
+
+	// the whole subsection
+	{
+		AtaStorageProperty p(pt);
+		p.set_name("NVME Error Log", "ata_smart_error_log/_merged");
+		p.reported_value = sub;
+		p.value = p.reported_value;  // string-type value
+
+		add_property(p);
+		// data_found = true;
+	}
+
+	// We may further split this subsection by Error blocks, but it's unnecessary -
+	// the data is too advanced to be of any use if parsed.
+
+	return data_found;
+}
+
+
 
 
 // -------------------- Selftest Log
@@ -2251,6 +2343,112 @@ Page Offset Size         Value  Description
 		if (st.is_header) {
 			description = hz::string_trim_copy(hz::string_trim_copy(description, "="));
 		}
+
+		AtaStorageProperty p(pt);
+		p.set_name(hz::string_trim_copy(description));
+		p.reported_value = line;  // use the whole line here
+		p.value = st;  // statistic-type value
+
+		add_property(p);
+		entries_found = true;
+	}
+
+	if (!entries_found)
+		set_error_msg("No entries found in Statistics section.");
+
+	return entries_found;
+}
+
+
+
+bool SmartctlAtaTextParser::parse_section_data_subsection_devstat_nvme(const std::string& sub)
+{
+	AtaStorageProperty pt;  // template for easy copying
+	pt.section = AtaStorageProperty::Section::data;
+	pt.subsection = AtaStorageProperty::SubSection::devstat;
+
+	// devstat log contains:
+/*
+SMART/Health Information (NVMe Log 0x02)
+Critical Warning:                   0x00
+Temperature:                        24 Celsius
+Available Spare:                    100%
+Available Spare Threshold:          10%
+Percentage Used:                    1%
+Data Units Read:                    10 013 954 [5,12 TB]
+Data Units Written:                 14 438 614 [7,39 TB]
+Host Read Commands:                 175 259 248
+Host Write Commands:                339 315 079
+Controller Busy Time:               906
+Power Cycles:                       288
+Power On Hours:                     1 446
+Unsafe Shutdowns:                   59
+Media and Data Integrity Errors:    0
+Error Information Log Entries:      792
+Warning  Comp. Temperature Time:    0
+Critical Comp. Temperature Time:    0
+Temperature Sensor 1:               24 Celsius
+Temperature Sensor 2:               27 Celsius
+*/
+
+	bool entries_found = false;  // at least one entry was found
+	// split to lines
+	std::vector<std::string> lines;
+	hz::string_split(sub, '\n', lines, true);
+
+	const std::string space_re = "[ \\t]+";
+
+	const std::string flag_re = "([A-Z=-]{3,})";
+	// Page Offset Size Value Flags Description
+	const pcrecpp::RE line_re = app_pcre_re("/([^:]+):" + space_re + "(.+)$/mi");
+
+
+	for (const auto& line : lines) {
+
+		if (line.empty() || line == "") {
+			break;
+		}
+
+		if (app_pcre_match("/^SMART\\/Health Information \\(NVMe Log/mi", line)) {
+			AtaStorageStatistic st;
+			st.is_header = true;
+			std::string description = hz::string_trim_copy(hz::string_trim_copy(line, "="));
+			AtaStorageProperty p(pt);
+			p.set_name(hz::string_trim_copy(description));
+			p.reported_value = line;  // use the whole line here
+			p.value = st;  // statistic-type value
+			add_property(p);
+			continue;
+		}
+
+		std::string value, description;
+
+		bool matched = false;
+		if (line_re.FullMatch(line, &description, &value)) {
+			matched = true;
+		}
+
+		if (!matched && description != "Warning") {
+			debug_out_warn("app", DBG_FUNC_MSG << "Cannot parse devstat line.\n");
+			debug_out_dump("app", "------------ Begin unparsable devstat line dump ------------\n");
+			debug_out_dump("app", line << "\n");
+			debug_out_dump("app", "------------- End unparsable devstat line dump -------------\n");
+			continue;  // continue to the next line
+		}
+
+
+		AtaStorageStatistic st;
+		//st.is_header = (hz::string_trim_copy(value) == "=");
+		//st.flags = st.is_header ? std::string() : hz::string_trim_copy(flags);
+		//st.value = st.is_header ? std::string() : hz::string_trim_copy(value);
+		st.value = hz::string_trim_copy(value);
+		hz::string_is_numeric_nolocale(st.value, st.value_int, false);
+		//hz::string_is_numeric_nolocale(page, st.page, false, 16);
+		//hz::string_is_numeric_nolocale(offset, st.offset, false, 16);
+
+		/*if (st.is_header) {
+			description = hz::string_trim_copy(hz::string_trim_copy(description, "="));
+		}*/
 
 		AtaStorageProperty p(pt);
 		p.set_name(hz::string_trim_copy(description));

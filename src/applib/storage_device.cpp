@@ -291,6 +291,16 @@ std::string StorageDevice::fetch_data_and_parse(const std::shared_ptr<CommandExe
 		// SCSI equivalent of -x:
 		error_msg = execute_device_smartctl("--health --info --attributes --log=error --log=selftest --log=background --log=sasphy", smartctl_ex, output);
 
+	} else if (get_detected_type() == DetectedType::nvme) {
+		// NVME equivalent of -x.
+		std::string command_options = "--health --info --get=all --capabilities --attributes --log=error";
+		if (default_parser_type == SmartctlParserSettingType::Json) {
+			// --json flags: o means include original output (just in case).
+			command_options += " --json=o";
+		}
+
+		error_msg = execute_device_smartctl(command_options, smartctl_ex, output, true);  // set type to invalid if needed
+
 	} else {
 		// ATA equivalent of -x.
 		std::string command_options = "--health --info --get=all --capabilities --attributes --format=brief --log=xerror,50,error --log=xselftest,50,selftest --log=selective --log=directory --log=scttemp --log=scterc --log=devstat --log=sataphy";

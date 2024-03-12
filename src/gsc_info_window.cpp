@@ -1417,7 +1417,7 @@ void GscInfoWindow::fill_ui_error_log(const std::vector<AtaStorageProperty>& pro
 			// add non-tree properties to label above
 		} else if (!p.is_value_type<AtaStorageErrorBlock>()) {
 			label_strings.emplace_back(p.displayable_name + ": " + p.format_value(), &p);
-			if (p.generic_name == "ata_smart_error_log/extended/count")
+			if (p.generic_name == "ata_smart_error_log/extended/count" || p.generic_name == "nvme_smart_error_log/count")
 				label_strings.back().label += " "s + _("(Note: The number of entries may be limited to the newest ones)");
 
 		} else {
