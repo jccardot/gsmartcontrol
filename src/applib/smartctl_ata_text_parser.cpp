@@ -2394,7 +2394,7 @@ Critical Comp. Temperature Time:    0
 Temperature Sensor 1:               24 Celsius
 Temperature Sensor 2:               27 Celsius
 */
-	int id = 0; // attribute id
+	int id = 300; // attribute id
 
 	bool entries_found = false;  // at least one entry was found
 	// split to lines
