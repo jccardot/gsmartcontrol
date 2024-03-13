@@ -1766,7 +1766,8 @@ void GscInfoWindow::cell_renderer_for_attributes(Gtk::CellRenderer* cr,
 			}
 		}
 		if (column_index == attribute_table_columns.when_failed.index()) {
-			if (attribute.when_failed != AtaStorageAttribute::FailTime::none) {
+			if (attribute.when_failed != AtaStorageAttribute::FailTime::none
+					&& attribute.when_failed != AtaStorageAttribute::FailTime::NA) {
 				crt->property_weight() = Pango::WEIGHT_BOLD;
 			} else {  // reset to default value if reloading
 				// Do not use WEIGHT_NORMAL here, it interferes with cell markup

@@ -81,7 +81,8 @@ class AtaStorageAttribute {
 			unknown,  ///< Unknown
 			none,  ///< Never (reported: -)
 			past,  ///< In the past (reported: In_the_past)
-			now  ///< Now (reported: FAILING_NOW)
+			now,  ///< Now (reported: FAILING_NOW)
+			NA   /// Not available (nvme)
 		};
 
 		/// Get a readable when-failed type name

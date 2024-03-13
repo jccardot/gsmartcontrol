@@ -2446,7 +2446,7 @@ Temperature Sensor 2:               27 Celsius
 		hz::string_is_numeric_nolocale(st.value, st.value_int, false);
 
 		AtaStorageProperty p(pt);
-		p.set_name(description, "ata_smart_attributes/revision");
+		p.set_name(hz::string_trim_copy(description), "ata_smart_attributes/revision");
 		p.reported_value = line;  // use the whole line here
 		p.value = st;  // statistic-type value
 
@@ -2457,6 +2457,7 @@ Temperature Sensor 2:               27 Celsius
 		{
 			AtaStorageAttribute attr;
 			attr.id = id++;
+			attr.when_failed = AtaStorageAttribute::FailTime::NA;
 			//attr.raw_value = hz::string_trim_copy(value);
 
 			std::vector<std::string> words;
@@ -2472,9 +2473,11 @@ Temperature Sensor 2:               27 Celsius
 						<< "Numeric value: \"" << value << "\" cannot be parsed as number.\n");
 			}
 			attr.raw_value = hz::number_to_string_nolocale(value_num);
+			attr.raw_value_int = value_num;
 
 			AtaStorageProperty p(pta);
 			p.set_name(hz::string_trim_copy(description));
+
 			p.reported_value = line;  // use the whole line here
 			p.value = attr;  // attribute-type value;
 

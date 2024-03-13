@@ -76,6 +76,7 @@ std::string AtaStorageAttribute::get_fail_time_name(AtaStorageAttribute::FailTim
 			{FailTime::none, "never"},
 			{FailTime::past, "in the past"},
 			{FailTime::now, "now"},
+			{FailTime::NA, "not available"}, // nvme
 	};
 	if (auto iter = m.find(type); iter != m.end()) {
 		return iter->second;
