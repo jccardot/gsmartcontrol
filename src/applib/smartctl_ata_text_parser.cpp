@@ -2367,6 +2367,10 @@ bool SmartctlAtaTextParser::parse_section_data_subsection_devstat_nvme(const std
 	pt.section = AtaStorageProperty::Section::data;
 	pt.subsection = AtaStorageProperty::SubSection::devstat;
 
+	AtaStorageProperty pta;  // template for easy copying (attributes)
+	pta.section = AtaStorageProperty::Section::data;
+	pta.subsection = AtaStorageProperty::SubSection::attributes;
+
 	// devstat log contains:
 /*
 SMART/Health Information (NVMe Log 0x02)
@@ -2390,6 +2394,7 @@ Critical Comp. Temperature Time:    0
 Temperature Sensor 1:               24 Celsius
 Temperature Sensor 2:               27 Celsius
 */
+	int id = 0; // attribute id
 
 	bool entries_found = false;  // at least one entry was found
 	// split to lines
@@ -2436,27 +2441,45 @@ Temperature Sensor 2:               27 Celsius
 			continue;  // continue to the next line
 		}
 
-
 		AtaStorageStatistic st;
-		//st.is_header = (hz::string_trim_copy(value) == "=");
-		//st.flags = st.is_header ? std::string() : hz::string_trim_copy(flags);
-		//st.value = st.is_header ? std::string() : hz::string_trim_copy(value);
 		st.value = hz::string_trim_copy(value);
 		hz::string_is_numeric_nolocale(st.value, st.value_int, false);
-		//hz::string_is_numeric_nolocale(page, st.page, false, 16);
-		//hz::string_is_numeric_nolocale(offset, st.offset, false, 16);
-
-		/*if (st.is_header) {
-			description = hz::string_trim_copy(hz::string_trim_copy(description, "="));
-		}*/
 
 		AtaStorageProperty p(pt);
-		p.set_name(hz::string_trim_copy(description));
+		p.set_name(description, "ata_smart_attributes/revision");
 		p.reported_value = line;  // use the whole line here
 		p.value = st;  // statistic-type value
 
 		add_property(p);
 		entries_found = true;
+
+		// Simulate attributes
+		{
+			AtaStorageAttribute attr;
+			attr.id = id++;
+			//attr.raw_value = hz::string_trim_copy(value);
+
+			std::vector<std::string> words;
+			
+			hz::string_split(hz::string_trim_copy(value), ' ', words, false);
+			std::string value = words.front();
+			app_pcre_replace("%", "", value);
+			app_pcre_replace(",", "", value);
+
+			int64_t value_num = -1;
+			if (!hz::string_is_numeric_nolocale<int64_t>(hz::string_trim_copy(value), value_num, false)) {  // this will autodetect number base.
+				debug_out_warn("app", DBG_FUNC_MSG
+						<< "Numeric value: \"" << value << "\" cannot be parsed as number.\n");
+			}
+			attr.raw_value = hz::number_to_string_nolocale(value_num);
+
+			AtaStorageProperty p(pta);
+			p.set_name(hz::string_trim_copy(description));
+			p.reported_value = line;  // use the whole line here
+			p.value = attr;  // attribute-type value;
+
+			add_property(p);
+		}
 	}
 
 	if (!entries_found)
